@@ -1,6 +1,7 @@
 # First Play
 - name: Play - Handle Files in all hosts
   hosts: all
+  become: yes
   tasks:
   - name: all host are identified with a file
     copy:
@@ -49,3 +50,31 @@
     command: forever start /node-app/app.js
     when: "forever_list.stdout.find('/node-app/app.js') == -1"
 
+# Third Play
+- name: Play - Install and configure Nginx as a LoadBalancer
+  hosts: loadbalancer_group
+  become: yes
+  tasks:
+    - name: Update cache
+      apt: update_cache=yes
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: latest
+      become: yes
+    - name: Copy the Nginx config file to /etc/nginx/sites-available
+      copy:
+        src: ./managed-host/alpine/nginx/nginx.conf
+        dest: /etc/nginx/sites-available
+      become: yes
+    - name: Create symlink of the config file at /etc/nginx/sites-enabled
+      file:
+        src: /etc/nginx/sites-available/nginx.conf
+        dest: /etc/nginx/sites-enabled/default
+        state: link
+      become: yes
+    - name: Restart nginx to apply changes
+      service:
+        name: nginx
+        state: restarted
+      become: yes
